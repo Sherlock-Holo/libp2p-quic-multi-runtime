@@ -1,16 +1,21 @@
+[workspace]
+members = [".", "muxers/test-harness"]
+resolver = "2"
+
 [package]
 name = "libp2p-quic-multi-runtime"
 version = "0.14.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2024"
-rust-version = "1.88.0"
+rust-version = "1.96.0"
 description = "TLS based QUIC transport implementation for libp2p"
 repository = "https://github.com/Sherlock-Holo/libp2p-quic-multi-runtime"
 license = "MIT"
 readme = "README.md"
 
 [dependencies]
-futures = "0.3.30"
+futures-channel = "0.3.32"
+futures-util = "0.3.32"
 futures-timer = "3.0"
 if-watch = "3.2.2"
 libp2p-core = "0.43.2"
@@ -35,13 +40,13 @@ all-features = true
 
 [dev-dependencies]
 libp2p-identity = { version = "0.2.14", features = ["rand"] }
-libp2p-muxer-test-harness = { path = "dev/muxer-test-harness" }
+libp2p-muxer-test-harness = { path = "muxers/test-harness" }
 libp2p-noise = "0.46.1"
 libp2p-tcp = { version = "0.44.1", features = ["tokio"] }
 libp2p-yamux = "0.47.0"
 quickcheck = "1"
-smol = "2"
-tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "time"] }
+smol = "2.0.2"
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "time"] }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [[test]]

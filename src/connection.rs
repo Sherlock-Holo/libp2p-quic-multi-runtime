@@ -21,14 +21,14 @@
 mod connecting;
 mod stream;
 
+pub use connecting::Connecting;
+use futures_util::{FutureExt, future::BoxFuture};
+use libp2p_core::muxing::{StreamMuxer, StreamMuxerEvent};
+use std::task::ready;
 use std::{
     pin::Pin,
     task::{Context, Poll},
 };
-
-pub use connecting::Connecting;
-use futures::{FutureExt, future::BoxFuture};
-use libp2p_core::muxing::{StreamMuxer, StreamMuxerEvent};
 pub use stream::Stream;
 
 use crate::{ConnectionError, Error};
@@ -79,7 +79,7 @@ impl StreamMuxer for Connection {
             async move { connection.accept_bi().await }.boxed()
         });
 
-        let (send, recv) = futures::ready!(incoming.poll_unpin(cx)).map_err(ConnectionError)?;
+        let (send, recv) = ready!(incoming.poll_unpin(cx)).map_err(ConnectionError)?;
         this.incoming.take();
         let stream = Stream::new(send, recv);
         Poll::Ready(Ok(stream))
@@ -96,19 +96,10 @@ impl StreamMuxer for Connection {
             async move { connection.open_bi().await }.boxed()
         });
 
-        let (send, recv) = futures::ready!(outgoing.poll_unpin(cx)).map_err(ConnectionError)?;
+        let (send, recv) = ready!(outgoing.poll_unpin(cx)).map_err(ConnectionError)?;
         this.outgoing.take();
         let stream = Stream::new(send, recv);
         Poll::Ready(Ok(stream))
-    }
-
-    fn poll(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<Result<StreamMuxerEvent, Self::Error>> {
-        // TODO: If connection migration is enabled (currently disabled) address
-        // change on the connection needs to be handled.
-        Poll::Pending
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -120,12 +111,21 @@ impl StreamMuxer for Connection {
             async move { connection.closed().await }.boxed()
         });
 
-        match futures::ready!(closing.poll_unpin(cx)) {
+        match ready!(closing.poll_unpin(cx)) {
             // Expected error given that `connection.close` was called above.
             quinn::ConnectionError::LocallyClosed => {}
             error => return Poll::Ready(Err(Error::Connection(ConnectionError(error)))),
         };
 
         Poll::Ready(Ok(()))
+    }
+
+    fn poll(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+    ) -> Poll<Result<StreamMuxerEvent, Self::Error>> {
+        // TODO: If connection migration is enabled (currently disabled) address
+        // change on the connection needs to be handled.
+        Poll::Pending
     }
 }

@@ -33,7 +33,7 @@
 //! # async fn main() -> std::io::Result<()> {
 //! #
 //! use libp2p_core::{Multiaddr, Transport, transport::ListenerId};
-//! use libp2p_quic as quic;
+//! use libp2p_quic_multi_runtime as quic;
 //!
 //! let keypair = libp2p_identity::Keypair::generate_ed25519();
 //! let quic_config = quic::Config::new(&keypair);
@@ -60,7 +60,7 @@
 //! # fn main() -> std::io::Result<()> {
 //! # smol::block_on(async {
 //! use libp2p_core::{Multiaddr, Transport, transport::ListenerId};
-//! use libp2p_quic as quic;
+//! use libp2p_quic_multi_runtime as quic;
 //!
 //! let keypair = libp2p_identity::Keypair::generate_ed25519();
 //! let quic_config = quic::Config::new(&keypair);

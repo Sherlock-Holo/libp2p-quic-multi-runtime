@@ -20,19 +20,16 @@
 
 //! Future that drives a QUIC connection until is has performed its TLS handshake.
 
+use futures_timer::Delay;
+use futures_util::future::{Either, FutureExt, Select, select};
+use libp2p_identity::PeerId;
+use quinn::rustls::pki_types::CertificateDer;
+use std::task::ready;
 use std::{
     pin::Pin,
     task::{Context, Poll},
     time::Duration,
 };
-
-use futures::{
-    future::{Either, FutureExt, Select, select},
-    prelude::*,
-};
-use futures_timer::Delay;
-use libp2p_identity::PeerId;
-use quinn::rustls::pki_types::CertificateDer;
 
 use crate::{Connection, ConnectionError, Error};
 
@@ -72,7 +69,7 @@ impl Future for Connecting {
     type Output = Result<(PeerId, Connection), Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let connection = match futures::ready!(self.connecting.poll_unpin(cx)) {
+        let connection = match ready!(self.connecting.poll_unpin(cx)) {
             Either::Right(_) => return Poll::Ready(Err(Error::HandshakeTimedOut)),
             Either::Left((connection, _)) => connection.map_err(ConnectionError)?,
         };

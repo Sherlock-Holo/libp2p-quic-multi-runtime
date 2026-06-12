@@ -2,7 +2,8 @@
 
 use std::{future::Future, time::Duration};
 
-use futures::{StreamExt, channel::oneshot};
+use futures_channel::oneshot;
+use futures_util::StreamExt;
 use libp2p_core::{
     Endpoint, Transport,
     transport::{DialOpts, ListenerId, PortUse},
@@ -97,7 +98,7 @@ where
         }
     });
 
-    futures::future::try_join(dialer_conn_receiver, listener_conn_receiver)
+    futures_util::future::try_join(dialer_conn_receiver, listener_conn_receiver)
         .await
         .unwrap()
 }

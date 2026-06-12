@@ -1,22 +1,21 @@
+use crate::{Error, provider::Provider};
+use futures_util::future::Either;
+use rand::RngExt;
+use rand::distr::StandardUniform;
+use std::pin::pin;
 use std::{
     convert::Infallible,
     net::{SocketAddr, UdpSocket},
     time::Duration,
 };
 
-use crate::{Error, provider::Provider};
-use futures::future::Either;
-use rand::RngExt;
-use rand::distr::StandardUniform;
-
 pub(crate) async fn hole_puncher<P: Provider>(
     socket: UdpSocket,
     remote_addr: SocketAddr,
     timeout_duration: Duration,
 ) -> Error {
-    let punch_holes_future = punch_holes::<P>(socket, remote_addr);
-    futures::pin_mut!(punch_holes_future);
-    match futures::future::select(P::sleep(timeout_duration), punch_holes_future).await {
+    let punch_holes_future = pin!(punch_holes::<P>(socket, remote_addr));
+    match futures_util::future::select(P::sleep(timeout_duration), punch_holes_future).await {
         Either::Left(_) => Error::HandshakeTimedOut,
         Either::Right((Err(hole_punch_err), _)) => hole_punch_err,
         Either::Right((Ok(never), _)) => match never {},

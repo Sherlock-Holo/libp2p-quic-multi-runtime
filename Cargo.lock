@@ -1262,8 +1262,9 @@ dependencies = [
 name = "libp2p-quic-multi-runtime"
 version = "0.14.0"
 dependencies = [
- "futures",
+ "futures-channel",
  "futures-timer",
+ "futures-util",
  "if-watch",
  "libp2p-core",
  "libp2p-identity",

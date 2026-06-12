@@ -25,7 +25,7 @@ use std::{
     time::Duration,
 };
 
-use futures::future::BoxFuture;
+use futures_util::future::BoxFuture;
 use if_watch::IfEvent;
 
 #[cfg(feature = "smol")]

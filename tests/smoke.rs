@@ -1,26 +1,17 @@
 #![cfg(any(feature = "tokio", feature = "smol"))]
 
-use std::{future::Future, io, num::NonZeroU8, time::Duration};
+use futures_channel::mpsc;
 #[cfg(feature = "tokio")]
-use std::{
-    pin::Pin,
-    sync::{Arc, Mutex},
-    task::Poll,
-};
-
-use futures::{
+use futures_channel::oneshot;
+#[cfg(feature = "tokio")]
+use futures_timer::Delay;
+#[cfg(feature = "tokio")]
+use futures_util::future::{BoxFuture, FutureExt, poll_fn};
+use futures_util::{
     AsyncReadExt, AsyncWriteExt, SinkExt,
-    channel::mpsc,
     future::{self, Either},
     stream::StreamExt,
 };
-#[cfg(feature = "tokio")]
-use futures::{
-    channel::oneshot,
-    future::{BoxFuture, FutureExt, poll_fn},
-};
-#[cfg(feature = "tokio")]
-use futures_timer::Delay;
 use libp2p_core::{
     Endpoint, Multiaddr, Transport,
     muxing::{StreamMuxerBox, StreamMuxerExt},
@@ -43,6 +34,15 @@ use libp2p_tcp as tcp;
 use libp2p_yamux as yamux;
 use quic::Provider;
 use rand::Rng;
+#[cfg(feature = "smol")]
+use std::pin::pin;
+use std::{future::Future, io, num::NonZeroU8, time::Duration};
+#[cfg(feature = "tokio")]
+use std::{
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::Poll,
+};
 use tracing_subscriber::EnvFilter;
 
 #[cfg(feature = "tokio")]
@@ -310,7 +310,7 @@ fn concurrent_connections_and_streams_smol() {
 async fn draft_29_support() {
     use std::task::Poll;
 
-    use futures::{future::poll_fn, select};
+    use futures_util::select;
     use libp2p_core::transport::TransportError;
 
     let _ = tracing_subscriber::fmt()
@@ -839,7 +839,7 @@ impl BlockOn for libp2p_quic_multi_runtime::tokio::Provider {
 impl BlockOn for libp2p_quic_multi_runtime::smol::Provider {
     fn block_on<R>(future: impl Future<Output = R> + Send, timeout: Duration) -> R {
         smol::block_on(async {
-            futures::pin_mut!(future);
+            let future = pin!(future);
 
             match future::select(future, smol::Timer::after(timeout)).await {
                 Either::Left((result, _)) => result,

@@ -18,13 +18,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+use futures_util::{AsyncRead, AsyncWrite};
+use std::task::ready;
 use std::{
     io::{self},
     pin::Pin,
     task::{Context, Poll},
 };
-
-use futures::{AsyncRead, AsyncWrite};
 
 /// A single stream on a connection
 pub struct Stream {
@@ -81,7 +81,7 @@ impl AsyncWrite for Stream {
             // For some reason poll_close needs to be 'fuse'able
             return Poll::Ready(close_result.map_err(Into::into));
         }
-        let close_result = futures::ready!(Pin::new(&mut self.send).poll_close(cx));
+        let close_result = ready!(Pin::new(&mut self.send).poll_close(cx));
         self.close_result = Some(close_result.as_ref().map_err(|e| e.kind()).copied());
         Poll::Ready(close_result)
     }

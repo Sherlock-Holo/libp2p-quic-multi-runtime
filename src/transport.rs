@@ -18,6 +18,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+use futures_channel::oneshot;
+use futures_util::FutureExt;
+use futures_util::{
+    Stream,
+    future::{BoxFuture, Either},
+    stream::{SelectAll, StreamExt},
+};
+use if_watch::IfEvent;
+use libp2p_core::{
+    Endpoint, Transport,
+    multiaddr::{Multiaddr, Protocol},
+    transport::{DialOpts, ListenerId, PortUse, TransportError, TransportEvent},
+};
+use libp2p_identity::PeerId;
+use socket2::{Domain, Socket, Type};
+use std::pin::pin;
+use std::task::ready;
 use std::{
     collections::{
         HashMap, HashSet,
@@ -32,22 +49,6 @@ use std::{
     time::Duration,
 };
 
-use futures::{
-    channel::oneshot,
-    future::{BoxFuture, Either},
-    prelude::*,
-    ready,
-    stream::{SelectAll, StreamExt},
-};
-use if_watch::IfEvent;
-use libp2p_core::{
-    Endpoint, Transport,
-    multiaddr::{Multiaddr, Protocol},
-    transport::{DialOpts, ListenerId, PortUse, TransportError, TransportEvent},
-};
-use libp2p_identity::PeerId;
-use socket2::{Domain, Socket, Type};
-
 use crate::{
     ConnectError, Connecting, Connection, Error,
     config::{Config, QuinnConfig},
@@ -58,8 +59,8 @@ use crate::{
 /// Implementation of the [`Transport`] trait for QUIC.
 ///
 /// By default only QUIC Version 1 (RFC 9000) is supported. In the [`Multiaddr`] this maps to
-/// [`libp2p_core::multiaddr::Protocol::QuicV1`].
-/// The [`libp2p_core::multiaddr::Protocol::Quic`] codepoint is interpreted as QUIC version
+/// [`Protocol::QuicV1`].
+/// The [`Protocol::Quic`] codepoint is interpreted as QUIC version
 /// draft-29 and only supported if [`Config::support_draft_29`] is set to `true`.
 /// Note that in that case servers support both version an all QUIC listening addresses.
 ///
@@ -128,7 +129,7 @@ impl<P: Provider> GenTransport<P> {
                 let _ = endpoint_config;
                 let _ = server_config;
                 let _ = socket;
-                let err = std::io::Error::other("no async runtime found");
+                let err = io::Error::other("no async runtime found");
                 Err(Error::Io(err))
             }
         }
@@ -349,8 +350,8 @@ impl<P: Provider> Transport for GenTransport<P> {
                 };
 
                 Ok(Box::pin(async move {
-                    futures::pin_mut!(hole_puncher);
-                    match futures::future::select(receiver, hole_puncher).await {
+                    let hole_puncher = pin!(hole_puncher);
+                    match futures_util::future::select(receiver, hole_puncher).await {
                         Either::Left((message, _)) => {
                             let (inbound_peer_id, connection) = message
                                 .expect(
@@ -379,7 +380,7 @@ impl<P: Provider> Transport for GenTransport<P> {
         cx: &mut Context<'_>,
     ) -> Poll<TransportEvent<Self::ListenerUpgrade, Self::Error>> {
         while let Poll::Ready(Some(ev)) = self.listeners.poll_next_unpin(cx) {
-            match ev {
+            return match ev {
                 TransportEvent::Incoming {
                     listener_id,
                     mut upgrade,
@@ -400,15 +401,15 @@ impl<P: Provider> Transport for GenTransport<P> {
                         }
                     }
 
-                    return Poll::Ready(TransportEvent::Incoming {
+                    Poll::Ready(TransportEvent::Incoming {
                         listener_id,
                         upgrade,
                         local_addr,
                         send_back_addr,
-                    });
+                    })
                 }
-                _ => return Poll::Ready(ev),
-            }
+                _ => Poll::Ready(ev),
+            };
         }
 
         self.waker = Some(cx.waker().clone());
@@ -521,7 +522,7 @@ impl<P: Provider> Listener<P> {
     }
 
     /// Clone underlying socket (for hole punching).
-    fn try_clone_socket(&self) -> std::io::Result<UdpSocket> {
+    fn try_clone_socket(&self) -> io::Result<UdpSocket> {
         self.socket.try_clone()
     }
 
@@ -749,9 +750,8 @@ fn socketaddr_to_multiaddr(socket_addr: &SocketAddr, version: ProtocolVersion) -
 #[cfg(test)]
 #[cfg(any(feature = "tokio", feature = "smol"))]
 mod tests {
-    use futures::future::poll_fn;
-
     use super::*;
+    use std::future::poll_fn;
 
     #[test]
     fn multiaddr_to_udp_conversion() {
