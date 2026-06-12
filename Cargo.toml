@@ -1,0 +1,61 @@
+[package]
+name = "libp2p-quic"
+version = "0.14.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2024"
+rust-version = "1.88.0"
+description = "TLS based QUIC transport implementation for libp2p"
+repository = "https://github.com/Sherlock-Holo/libp2p-quic-multi-runtime"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+futures = "0.3.30"
+futures-timer = "3.0"
+if-watch = "3.2.2"
+libp2p-core = "0.43.2"
+libp2p-identity = "0.2.14"
+libp2p-tls = "0.6.2"
+quinn = { version = "0.11.9", default-features = false, features = ["rustls", "futures-io"] }
+rand = "0.8.0"
+ring = "0.17.12"
+rustls = { version = "0.23.40", default-features = false }
+smol = { version = "2", optional = true }
+socket2 = "0.6.4"
+thiserror = "2"
+tokio = { version = "1.52", default-features = false, features = ["net", "rt", "time"], optional = true }
+tracing = "0.1.44"
+# Keep `rcgen` (via `libp2p-tls`) building with a compatible `time` release.
+time = "0.3.47"
+
+[features]
+smol = ["dep:smol", "if-watch/smol", "quinn/runtime-smol"]
+tokio = ["dep:tokio", "if-watch/tokio", "quinn/runtime-tokio"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dev-dependencies]
+libp2p-identity = { version = "0.2.14", features = ["rand"] }
+libp2p-muxer-test-harness = { path = "dev/muxer-test-harness" }
+libp2p-noise = "0.46.1"
+libp2p-tcp = { version = "0.44.1", features = ["tokio"] }
+libp2p-yamux = "0.47.0"
+quickcheck = "1"
+smol = "2"
+tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "time"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
+[[test]]
+name = "stream_compliance"
+
+[lints.rust]
+unreachable_pub = "warn"
+
+[lints.clippy]
+dbg_macro = "warn"
+manual_let_else = "warn"
+pedantic = { level = "allow", priority = -1 }
+type_complexity = "allow"
+unnecessary_wraps = "warn"
+used_underscore_binding = "warn"
