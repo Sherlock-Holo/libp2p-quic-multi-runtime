@@ -7,7 +7,7 @@ use libp2p_core::{
     Endpoint, Transport,
     transport::{DialOpts, ListenerId, PortUse},
 };
-use libp2p_quic as quic;
+use libp2p_quic_multi_runtime as quic;
 
 #[cfg(feature = "tokio")]
 #[tokio::test]

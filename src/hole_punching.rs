@@ -4,10 +4,10 @@ use std::{
     time::Duration,
 };
 
-use futures::future::Either;
-use rand::{Rng, distributions};
-
 use crate::{Error, provider::Provider};
+use futures::future::Either;
+use rand::RngExt;
+use rand::distr::StandardUniform;
 
 pub(crate) async fn hole_puncher<P: Provider>(
     socket: UdpSocket,
@@ -28,16 +28,13 @@ async fn punch_holes<P: Provider>(
     remote_addr: SocketAddr,
 ) -> Result<Infallible, Error> {
     loop {
-        let contents: Vec<u8> = rand::thread_rng()
-            .sample_iter(distributions::Standard)
-            .take(64)
-            .collect();
+        let contents: Vec<u8> = rand::rng().sample_iter(StandardUniform).take(64).collect();
 
         tracing::trace!("Sending random UDP packet to {remote_addr}");
 
         P::send_to(&socket, &contents, remote_addr).await?;
 
-        let sleep_duration = Duration::from_millis(rand::thread_rng().gen_range(10..=200));
+        let sleep_duration = Duration::from_millis(rand::rng().random_range(10..=200));
         P::sleep(sleep_duration).await;
     }
 }

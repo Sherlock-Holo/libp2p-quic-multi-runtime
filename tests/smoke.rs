@@ -36,13 +36,13 @@ use libp2p_core::{
 use libp2p_identity::PeerId;
 #[cfg(feature = "tokio")]
 use libp2p_noise as noise;
-use libp2p_quic as quic;
+use libp2p_quic_multi_runtime as quic;
 #[cfg(feature = "tokio")]
 use libp2p_tcp as tcp;
 #[cfg(feature = "tokio")]
 use libp2p_yamux as yamux;
 use quic::Provider;
-use rand::RngCore;
+use rand::Rng;
 use tracing_subscriber::EnvFilter;
 
 #[cfg(feature = "tokio")]
@@ -117,7 +117,7 @@ async fn wrapped_with_delay() {
 
     impl Transport for DialDelay {
         type Output = (PeerId, StreamMuxerBox);
-        type Error = std::io::Error;
+        type Error = io::Error;
         type ListenerUpgrade = Pin<Box<dyn Future<Output = io::Result<Self::Output>> + Send>>;
         type Dial = BoxFuture<'static, Result<Self::Output, Self::Error>>;
 
@@ -747,7 +747,7 @@ async fn open_outbound_streams<P: Provider + Spawn, const BUFFER_SIZE: usize>(
                 }
 
                 let mut data = vec![0; BUFFER_SIZE];
-                rand::thread_rng().fill_bytes(&mut data);
+                rand::rng().fill_bytes(&mut data);
 
                 let mut received = Vec::new();
 
@@ -827,7 +827,7 @@ trait BlockOn {
 }
 
 #[cfg(feature = "tokio")]
-impl BlockOn for libp2p_quic::tokio::Provider {
+impl BlockOn for libp2p_quic_multi_runtime::tokio::Provider {
     fn block_on<R>(future: impl Future<Output = R> + Send, timeout: Duration) -> R {
         tokio::runtime::Handle::current()
             .block_on(tokio::time::timeout(timeout, future))
@@ -836,7 +836,7 @@ impl BlockOn for libp2p_quic::tokio::Provider {
 }
 
 #[cfg(feature = "smol")]
-impl BlockOn for libp2p_quic::smol::Provider {
+impl BlockOn for libp2p_quic_multi_runtime::smol::Provider {
     fn block_on<R>(future: impl Future<Output = R> + Send, timeout: Duration) -> R {
         smol::block_on(async {
             futures::pin_mut!(future);
@@ -855,14 +855,14 @@ trait Spawn {
 }
 
 #[cfg(feature = "tokio")]
-impl Spawn for libp2p_quic::tokio::Provider {
+impl Spawn for libp2p_quic_multi_runtime::tokio::Provider {
     fn spawn(future: impl Future<Output = ()> + Send + 'static) {
         tokio::spawn(future);
     }
 }
 
 #[cfg(feature = "smol")]
-impl Spawn for libp2p_quic::smol::Provider {
+impl Spawn for libp2p_quic_multi_runtime::smol::Provider {
     fn spawn(future: impl Future<Output = ()> + Send + 'static) {
         smol::spawn(future).detach();
     }

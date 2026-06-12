@@ -1,5 +1,5 @@
 [package]
-name = "libp2p-quic"
+name = "libp2p-quic-multi-runtime"
 version = "0.14.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2024"
@@ -17,7 +17,7 @@ libp2p-core = "0.43.2"
 libp2p-identity = "0.2.14"
 libp2p-tls = "0.6.2"
 quinn = { version = "0.11.9", default-features = false, features = ["rustls", "futures-io"] }
-rand = "0.8.0"
+rand = "0.10.1"
 ring = "0.17.12"
 rustls = { version = "0.23.40", default-features = false }
 smol = { version = "2", optional = true }
@@ -25,8 +25,6 @@ socket2 = "0.6.4"
 thiserror = "2"
 tokio = { version = "1.52", default-features = false, features = ["net", "rt", "time"], optional = true }
 tracing = "0.1.44"
-# Keep `rcgen` (via `libp2p-tls`) building with a compatible `time` release.
-time = "0.3.47"
 
 [features]
 smol = ["dep:smol", "if-watch/smol", "quinn/runtime-smol"]
